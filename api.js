@@ -1,52 +1,46 @@
-// api.js - Backend & API Logic
+// api.js - Robust fetcher for Wikimedia "On This Day"
 const BASE_URL = "https://en.wikipedia.org/api/rest_v1/feed/v1/wikipedia/en/onthisday";
 
 /**
- * Core API Function: Fetches historical data
+ * Fetches historical data and cleans it for the UI.
+ * @param {string} type - 'all', 'selected', 'births', 'deaths', or 'holidays'
+ * @param {number|string} mm - Month (1-12)
+ * @param {number|string} dd - Day (1-31)
  */
-export async function getEvents(type = 'all', month, day) {
-    // 1. Force two-digit formatting
-    const mm = String(month).padStart(2, '0');
-    const dd = String(day).padStart(2, '0');
-    
-    const url = `${BASE_URL}/${type}/${mm}/${dd}`;
-
-    console.log("🔗 URL being tested:", url);
+export async function getEvents(type = 'selected', mm, dd) {
+    //format padding: Ensures '3' becomes '03' as required by Wikimedia
+    const month = String(mm).padStart(2, '0');
+    const day = String(dd).padStart(2, '0');
 
     try {
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                // IMPORTANT: Wikimedia requires a User-Agent to prevent 404/403 errors
-                'Api-User-Agent': 'ArchivedWorld/1.0 (https://github.com/Kakrona-pos/Archived-Chronicle.git;'
-            }
-        });
+        const response = await fetch(`${BASE_URL}/${type}/${month}/${day}`);
 
         if (!response.ok) {
-            throw new Error(`Server Error: ${response.status}`);
+            throw new Error(`Wikimedia API Error: ${response.status} - ${response.statusText}`);
         }
 
         const data = await response.json();
-        return data; 
+
+        //handle the 'all' type case
+        //if 'all' is requested, we might want to default to 'selected' events 
+        // or return the whole object depending on app.js logic.
+        const rawList = type === 'all' ? data.selected : data[type];
+
+        if (!rawList) return [];
+
+        //Data Transformation: Clean the "noisy" API response
+        //ensuring app.js gets exactly what it needs to show on the front page.
+        return rawList.map(item => ({
+            year: item.year || "N/A",
+            title: item.text,
+            description: item.pages?.[0]?.extract || "No further details available.",
+            thumbnail: item.pages?.[0]?.thumbnail?.source || null, // UI can show a placeholder if null
+            articleUrl: item.pages?.[0]?.content_urls?.desktop?.page || "#"
+        }));
+
     } catch (error) {
-        console.error("❌ API Fetch Failed:", error.message);
-        return null;
+        console.error("Critical Backend Error:", error.message);
+        //Returning an empty array prevents app.js from breaking (no .map() errors)
+        return [];
     }
 }
-
-/**
- * Favorites System: Saves to LocalStorage
- */
-export const saveToFavorites = (eventObj) => {
-    const favorites = JSON.parse(localStorage.getItem('archived_favorites')) || [];
-    if (!eventObj.pages || !eventObj.pages[0]) return;
-    
-    const pageId = eventObj.pages[0].pageid;
-    const exists = favorites.some(fav => fav.pages[0].pageid === pageId);
-    
-    if (!exists) {
-        favorites.push(eventObj);
-        localStorage.setItem('archived_favorites', JSON.stringify(favorites));
-        console.log("⭐ Saved!");
-    }
-};
