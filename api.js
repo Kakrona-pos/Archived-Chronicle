@@ -1,52 +1,28 @@
-// api.js - Backend & API Logic
+// api.js - Modular fetcher for Wikimedia
 const BASE_URL = "https://en.wikipedia.org/api/rest_v1/feed/v1/wikipedia/en/onthisday";
 
 /**
- * Core API Function: Fetches historical data
+ * Fetches historical data based on type and date
+ * @param {string} type - 'all', 'selected', 'births', 'deaths', or 'holidays'
+ * @param {string} mm - Month (01-12)
+ * @param {string} dd - Day (01-31)
  */
-export async function getEvents(type = 'all', month, day) {
-    // 1. Force two-digit formatting
-    const mm = String(month).padStart(2, '0');
-    const dd = String(day).padStart(2, '0');
-    
-    const url = `${BASE_URL}/${type}/${mm}/${dd}`;
-
-    console.log("🔗 URL being tested:", url);
-
+export async function getEvents(type = 'selected', mm, dd) {
     try {
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                // IMPORTANT: Wikimedia requires a User-Agent to prevent 404/403 errors
-                'Api-User-Agent': 'ArchivedWorld/1.0 (https://github.com/Kakrona-pos/Archived-Chronicle.git;'
-            }
-        });
-
+        const response = await fetch(`${BASE_URL}/${type}/${mm}/${dd}`);
+        
         if (!response.ok) {
-            throw new Error(`Server Error: ${response.status}`);
+            throw new Error(`HTTP Error! Status: ${response.status}`);
         }
 
         const data = await response.json();
-        return data; 
+        
+        // The API returns an object where the key is the 'type' (e.g., data.births)
+        // Return that specific array to app.js
+        return data[type] || [];
+        
     } catch (error) {
-        console.error("❌ API Fetch Failed:", error.message);
-        return null;
+        console.error("Failed to fetch from Wikimedia:", error);
+        return [];
     }
 }
-
-/**
- * Favorites System: Saves to LocalStorage
- */
-export const saveToFavorites = (eventObj) => {
-    const favorites = JSON.parse(localStorage.getItem('archived_favorites')) || [];
-    if (!eventObj.pages || !eventObj.pages[0]) return;
-    
-    const pageId = eventObj.pages[0].pageid;
-    const exists = favorites.some(fav => fav.pages[0].pageid === pageId);
-    
-    if (!exists) {
-        favorites.push(eventObj);
-        localStorage.setItem('archived_favorites', JSON.stringify(favorites));
-        console.log("⭐ Saved!");
-    }
-};
