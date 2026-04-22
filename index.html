@@ -6,6 +6,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Archived World - Discover History</title>
     <link rel="stylesheet" href="styles.css">
+    <style>
+        .date-picker {
+            position: relative;
+            cursor: pointer;
+        }
+
+        .date-picker input[type="date"]::-webkit-calendar-picker-indicator {
+            display: block;
+            opacity: 0;
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+    </style>
 </head>
 
 <body>
@@ -17,7 +33,7 @@
                 <img src="assets/book-open-svgrepo-com.svg" class="logo-icon" alt="">
 
                 <div class="logo-text">
-                    <h1>Archived World</h1>
+                    <h1>Archived Chronicle</h1>
                     <p>Discover history, one day at a time</p>
                 </div>
             </div>
@@ -54,6 +70,7 @@
                 <button data-type="births">Births</button>
                 <button data-type="deaths">Deaths</button>
                 <button data-type="holidays">Holidays</button>
+                <button data-type="favorites" id="fav-filter-btn">❤ Favorites</button>
             </nav>
 
             <!-- Search Box -->
